@@ -6,12 +6,12 @@
     width = 2*rand(2)
 
     bixel = Bixel(pos, width)
-    gantry = GantryPosition(2π*rand(), π*rand(), SAD)
+    source = RotatingGantryPosition(2π*rand(), π*rand(), SAD)
 
-    beamlet = Beamlet(bixel, gantry)
+    beamlet = Beamlet(bixel, source)
 
     # Source Axis
-    s = Roentgen.beamaxis(gantry)
+    s = Roentgen.beamaxis(source)
     @test Roentgen.source_axis(beamlet) ≈ s
     @test Roentgen.source_axis_distance(beamlet) == SAD
     @test Roentgen.source_position(beamlet) == SAD*s

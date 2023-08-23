@@ -152,7 +152,7 @@ Implemented Surfaces:
 
         function test_angle(surf, ϕg, SAD, SSDc)
         
-            gantry = GantryPosition(ϕg, 0., SAD)
+            gantry = RotatingGantryPosition(ϕg, 0., SAD)
             src = Roentgen.getposition(gantry)
         
             T = RotY(ϕg)

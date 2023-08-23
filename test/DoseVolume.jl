@@ -9,7 +9,7 @@
     @test pos == getpositions(vol)
     @test surf == getsurface(vol)
 
-    beamlet = Beamlet(Bixel(0., 0., 1., 1.), GantryPosition(0., 0., 1000.))
+    beamlet = Beamlet(Bixel(0., 0., 1., 1.), RotatingGantryPosition(0., 0., 1000.))
     calc = MockKernel()
 
     D_truth = dose_fluence_matrix(Matrix, vec(pos), [beamlet], surf, calc)

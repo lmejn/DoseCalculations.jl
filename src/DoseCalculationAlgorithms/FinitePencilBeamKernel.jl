@@ -28,15 +28,15 @@ end
 
 Construct a beamlet from a bixel
 """
-function Beamlet(bixel::Bixel, gantry::GantryPosition)
+function Beamlet(bixel::Bixel, source::AbstractSourcePosition)
 
-    s = getposition(gantry)
-    SAD = getSAD(gantry)
+    s = getposition(source)
+    SAD = getSAD(source)
 
     p = getcenter(bixel)
     hw = 0.5*getwidth(bixel)
 
-    trans = bld_to_fixed(gantry)
+    trans = bld_to_fixed(source)
     b = trans(SVector(p[1], p[2], -SAD))
     by = trans(SVector(p[1], p[2]+hw[2], -SAD))
 
@@ -136,7 +136,7 @@ function calibrate!(calc::FinitePencilBeamKernel, MU, fieldsize, SAD, SSD=SAD;
     xb = -0.5*fieldsize:beamlet_size:0.5*fieldsize
     bixels = BixelGrid(xb, xb)
 
-    gantry = GantryPosition(0., 0., SAD)
+    gantry = RotatingGantryPosition(0., 0., SAD)
 
     beamlets = Beamlet.(bixels, (gantry,))
 

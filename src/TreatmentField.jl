@@ -84,7 +84,7 @@ function Base.show(io::IO, pt::ControlPoint)
 end
 
 fixed_to_bld(pt::ControlPoint) = fixed_to_bld(getϕg(pt), getθb(pt), getSAD(pt))
-getgantry(pt::ControlPoint) = GantryPosition(getϕg(pt), getθb(pt), getSAD(pt))
+getgantry(pt::ControlPoint) = RotatingGantryPosition(getϕg(pt), getθb(pt), getSAD(pt))
 getΔMU(pt::ControlPoint) = pt.ΔMU
 
 #--- VMAT --------------------------------------------------------------------------------------------------------------
@@ -146,11 +146,11 @@ end
 
 Base.length(field::AbstractVMATField) = field.ncontrol
 
-getgantry(field::AbstractVMATField) = GantryPosition.(getϕg(field),
+getgantry(field::AbstractVMATField) = RotatingGantryPosition.(getϕg(field),
                                                       getθb(field),
                                                       getSAD(field))
 
-getgantry(field::AbstractVMATField, i::Int) = GantryPosition(getϕg(field, i),
+getgantry(field::AbstractVMATField, i::Int) = RotatingGantryPosition(getϕg(field, i),
                                                              getθb(field),
                                                              getSAD(field))
 

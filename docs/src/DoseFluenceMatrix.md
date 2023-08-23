@@ -25,11 +25,11 @@ Beamlets have three features:
 - A direction, pointing away from the source
 - Widths in directions perpendicular to the beamlet direct, usually scaled to the isoplane
 
-Beamlets can be be constructed by combining a `Bixel` and `GantryPosition`,
+Beamlets can be be constructed by combining a `Bixel` and `RotatingGantryPosition`,
 
 ```@repl abc
 bixel = Bixel(0., 0., 1., 1.)
-gantry = GantryPosition(0., 0., 1000.)
+gantry = RotatingGantryPosition(0., 0., 1000.)
 beamlet = Beamlet(bixel, gantry)
 ```
 

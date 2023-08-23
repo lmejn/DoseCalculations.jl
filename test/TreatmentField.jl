@@ -24,7 +24,7 @@ end
         @test getisocenter(pt) == isocenter
 
         @test fixed_to_bld(pt) == fixed_to_bld(ϕg, θb, SAD)
-        @test getgantry(pt) == GantryPosition(ϕg, θb, SAD)
+        @test getgantry(pt) == RotatingGantryPosition(ϕg, θb, SAD)
         @test getΔMU(pt) == ΔMU
     end
 end
@@ -53,7 +53,7 @@ end
         @test getdoserate(field) == dose_rate
         @test getisocenter(field) == isocenter
     
-        @test getgantry(field) == GantryPosition.(ϕg, θb, SAD)
+        @test getgantry(field) == RotatingGantryPosition.(ϕg, θb, SAD)
         @test getmeterset(field) == meterset
     end
     
@@ -64,7 +64,7 @@ end
         @test getdoserate(field, i) == dose_rate
         @test getisocenter(field, i) == isocenter
     
-        @test getgantry(field, i) == GantryPosition(ϕg[i], θb, SAD)
+        @test getgantry(field, i) == RotatingGantryPosition(ϕg[i], θb, SAD)
         @test getmeterset(field, i) == meterset[i]
     
         @test getΔMU(field, 1) == 0.5*(meterset[2]-meterset[1])

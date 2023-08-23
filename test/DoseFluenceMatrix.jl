@@ -78,7 +78,7 @@ end
 
     surf = PlaneSurface(1000.)
 
-    gantry = GantryPosition(0., 0., 1000.)
+    gantry = RotatingGantryPosition(0., 0., 1000.)
     beamlets = Beamlet.(bixels, (gantry,))
 
     Dsaved = JLD2.load("test-data/dose_fluence_matrix.jld2", "mock-kernel")

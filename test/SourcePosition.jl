@@ -1,6 +1,6 @@
-@testset "GantryPosition" begin
+@testset "RotatingGantryPosition" begin
     ϕg, θb, SAD = rand(3)
-    gantry = GantryPosition(ϕg, θb, SAD)
+    gantry = RotatingGantryPosition(ϕg, θb, SAD)
 
     a = [sin(ϕg), 0., cos(ϕg)]
 
@@ -12,6 +12,10 @@
     end
 
     @testset "Methods" begin
+        @test gantry[1] ≈ SAD*a[1]
+        @test gantry[2] ≈ SAD*a[2]
+        @test gantry[3] ≈ SAD*a[3]
+
         @test getϕg(gantry) ≈ ϕg
         @test getθb(gantry) ≈ θb
         @test getSAD(gantry) ≈ SAD
