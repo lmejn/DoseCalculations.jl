@@ -6,164 +6,50 @@ export VMATField
 
 fixangle(angle) = angle > π ? angle - 2π : angle
 
-"""
-    Treatment Field
+#--- Abstract Types ----------------------------------------------------------------------------------------------------
 
-Abstract treatment field, basis for containing multiple treatment types (e.g. VMAT, IMRT, etc.)
-"""
-abstract type AbstractTreatmentField end
-
+abstract type AbstractControlPoint end
+const AbstractTreatmentField = AbstractVector{AbstractControlPoint}
 const AbstractTreatmentPlan = AbstractVector{AbstractTreatmentField}
 
-show_angle(angle, digits=2) = "$(round(rad2deg(angle); digits=digits))°"
-
-"""
-    iterate
-
-Iteration of a treatment field, returning ControlPoint every time iterate is called.
-"""
-Base.iterate(field::AbstractTreatmentField) = Base.iterate(field, 1)
-function Base.iterate(field::AbstractTreatmentField, i)
-    length(field)<i && return nothing
-    field[i], i+1
-end
-
-Base.length(field::AbstractTreatmentField) = field.ncontrol
-
-Base.eachindex(field::AbstractTreatmentField) = Base.OneTo(length(field))
-Base.lastindex(field::AbstractTreatmentField) = length(field)
-
-#--- Accessor methods ---------------------------------------------------------
-
-getmlc(field::AbstractTreatmentField, args...) = field.mlc
-getjaws(field::AbstractTreatmentField, args...) = field.jaws
-getθb(field::AbstractTreatmentField, args...) = field.collimator_angle
-getϕg(field::AbstractTreatmentField, args...) = field.gantry_angle
-getSAD(field::AbstractTreatmentField, args...) = field.source_axis_distance
-getmeterset(field::AbstractTreatmentField, args...) = field.meterset
-getdoserate(field::AbstractTreatmentField, args...) = field.dose_rate
-getisocenter(field::AbstractTreatmentField, args...) = field.isocenter
-
-function Base.show(io::IO, field::AbstractTreatmentField)
-    msg = "$(length(field)),"*
-          " ϕg: $(show_angle(field.gantry_angle[1]))->$(show_angle(field.gantry_angle[end])),"*
-          " θb: $(show_angle(field.collimator_angle)),"*
-          " MU: $(field.meterset[end])"
-
-    println(io, msg)
-end
-
-#--- Control Point ------------------------------------------------------------
+#--- ControlPoint ------------------------------------------------------------------------------------------------------
 
 """
     ControlPoint
 
 Elements of a TreatmentField
 """
-struct ControlPoint{T<:AbstractFloat, TMLC<:AbstractMultiLeafCollimator} <: AbstractTreatmentField
+struct ControlPoint{T<:AbstractFloat, TBLD<:AbstractBeamLimitingDevice,
+    TSourcePosition<:AbstractSourcePosition} <: AbstractControlPoint
     # Beam Limiting Devices
-    mlc::TMLC
-    jaws::Jaws{T} # Jaw Positions
+    beam_limiting_device::TBLD
 
-    # Treatment Positions
-    gantry_angle::T
-    collimator_angle::T
-    source_axis_distance::T
+    # Source Position
+    source_position::TSourcePosition
 
-    ΔMU::T # Meterset   (MU)
-    dose_rate::T        # Dose Rate (MU/s)
+    # Machine Parameters
+    ΔMU::T # Meterset (MU)
+    MU::T # Cumulative Meterset (MU)
+    doserate::T # Dose Rate (MU/s)
+
     isocenter::SVector{3, T}    # Isocenter Position
 end
 
-function Base.show(io::IO, pt::ControlPoint)
-    msg = "ϕg: $(show_angle(getϕg(pt))),"*
-          "θb: $(show_angle(getθb(pt))),"*
-          "ΔMU: $(getΔMU(pt))"
-
-    println(io, msg)
+function Base.show(io::IO, point::ControlPoint)
+    @printf io "ΔMU=%0.1f" getΔMU(point)
+    println(io, ", ", point.source_position)
+    println(io, point.beam_limiting_device)
 end
 
-fixed_to_bld(pt::ControlPoint) = fixed_to_bld(getϕg(pt), getθb(pt), getSAD(pt))
-getgantry(pt::ControlPoint) = RotatingGantryPosition(getϕg(pt), getθb(pt), getSAD(pt))
-getΔMU(pt::ControlPoint) = pt.ΔMU
+# Accessors
+getBLD(point::ControlPoint) = point.beam_limiting_device
+getsourceposition(point::ControlPoint) = point.source_position
+getΔMU(point::ControlPoint) = point.ΔMU
+getdoserate(point::ControlPoint) = point.doserate
+getisocenter(point::ControlPoint) = point.isocenter
 
-#--- VMAT --------------------------------------------------------------------------------------------------------------
-
-abstract type AbstractVMATField <: AbstractTreatmentField end
-
-struct VMATField{T<:AbstractFloat, TMLC} <: AbstractVMATField
-    ncontrol::Int   # Number of Control Points
-
-    # Beam Limiting Devices
-    mlc::TMLC   # MLC Type
-
-    jaws::Jaws{T}  # Jaw Positions
-
-    # Treatment Positions
-    gantry_angle::Vector{T}    # Gantry Angle (ʳ)
-    collimator_angle::T  # Beam Limiting Device Angle (ʳ)
-    source_axis_distance::T
-
-    meterset::Vector{T}  # Cumulative Meterset   (MU)
-    dose_rate::T   # Dose Rate (MU/s)
-
-    isocenter::SVector{3, T} # Isocenter Position (in patient based coords)
-
-    function VMATField(mlc, jaws, gantry_angles, collimator_angle, source_axis_distance, meterset, doserate, isocenter)
-        ncontrol = length(gantry_angles)
-
-        @assert length(mlc) == ncontrol
-        @assert length(meterset) == ncontrol "length(meterset) ($(length(meterset))) != $ncontrol"
-        new{typeof(doserate), typeof(mlc)}(ncontrol,
-                                            mlc, jaws,
-                                            gantry_angles, collimator_angle, source_axis_distance,
-                                            meterset, doserate, isocenter)
-    end
-end
-
-function Base.getindex(field::AbstractVMATField, i::Int)
-    ControlPoint(getmlc(field, i),
-                 getjaws(field),
-                 getϕg(field, i),
-                 getθb(field, i),
-                 getSAD(field, i),
-                 getΔMU(field, i),
-                 getdoserate(field, i),
-                 getisocenter(field, i))
-end
-
-
-function Base.getindex(field::AbstractVMATField, i::UnitRange{Int})
-    VMATField(getmlc(field, i),
-              getjaws(field),
-              getϕg(field, i),
-              getθb(field, i),
-              getSAD(field, i),
-              getmeterset(field, i),
-              getdoserate(field, i),
-              getisocenter(field, i))
-end
-
-Base.length(field::AbstractVMATField) = field.ncontrol
-
-getgantry(field::AbstractVMATField) = RotatingGantryPosition.(getϕg(field),
-                                                      getθb(field),
-                                                      getSAD(field))
-
-getgantry(field::AbstractVMATField, i::Int) = RotatingGantryPosition(getϕg(field, i),
-                                                             getθb(field),
-                                                             getSAD(field))
-
-getmlc(field::AbstractVMATField, i) = field.mlc[i]
-getϕg(field::AbstractVMATField, i) = field.gantry_angle[i]
-
-getmeterset(field::AbstractVMATField, i) = field.meterset[i]
-
-function getΔMU(field::AbstractVMATField, i::Int)
-    i == 1 && return 0.5*(field.meterset[2]-field.meterset[1])
-    i == length(field) && return 0.5*(field.meterset[end]-field.meterset[end-1])
-    0.5*(field.meterset[i+1]-field.meterset[i-1])
-end
+fixed_to_bld(point::ControlPoint) = point |> getsourceposition |> fixed_to_bld
+getΔt(point::ControlPoint) = getΔMU(point)/getdoserate(point)
 
 #--- Resampling --------------------------------------------------------------------------------------------------------
 

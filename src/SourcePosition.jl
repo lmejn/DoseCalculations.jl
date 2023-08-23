@@ -34,7 +34,7 @@ struct RotatingGantryPosition{T} <: AbstractSourcePosition{T}
 end
 
 function Base.show(io::IO, source::RotatingGantryPosition)
-    print(io, "ϕg=", show_angle(getϕg(source)), ", θb=", show_angle(getθb(source)), ", SAD=", getSAD(source))
+    @printf io "RotatingGantryPosition(ϕg=%0.1f°, θb=%0.1f°, SAD=%0.1f)" rad2deg(getϕg(source)) rad2deg(getθb(source)) getSAD(source)
 end
 
 Base.getindex(source::RotatingGantryPosition, i::Int) = getSAD(source)*beamaxis(source, i)
