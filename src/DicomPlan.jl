@@ -36,45 +36,42 @@ function load_beam(beam, total_meterset)
 
     # 
     ncontrol = beam[tag"NumberOfControlPoints"]
-    θb = deg2rad(controlpoint[tag"BeamLimitingDeviceAngle"])
-    Ḋ = controlpoint[tag"DoseRateSet"]/60. # Convert from MU/min to MU/s
 
-    isocenter = SVector(controlpoint[tag"IsocenterPosition"]...)
+    θb = deg2rad(controlpoint[tag"BeamLimitingDeviceAngle"])
+    doserate = fill(controlpoint[tag"DoseRateSet"]/60., ncontrol) # Convert from MU/min to MU/s
+
+    isocenter = fill(SVector(controlpoint[tag"IsocenterPosition"]...), ncontrol)
 
     # Jaws
     jaws_x = controlpoint[tag"BeamLimitingDevicePositionSequence"][1][tag"LeafJawPositions"]
     jaws_y = controlpoint[tag"BeamLimitingDevicePositionSequence"][2][tag"LeafJawPositions"]
-    jaws = Jaws(jaws_x, jaws_y)
+    jaws = fill(Jaws(jaws_x, jaws_y), ncontrol)
 
     mlcy = beam[tag"BeamLimitingDeviceSequence"][3]["LeafPositionBoundaries"]
     nleaves = length(mlcy)-1
 
+    T = typeof(θb)
+
     ϕg = zeros(ncontrol)
     meterset = zeros(ncontrol)
+    sourcepositions = Vector{RotatingGantryPosition{T}}(undef, ncontrol)
 
-    meterset = [total_meterset*controlpoint[tag"CumulativeMetersetWeight"] for controlpoint in controlpoints]
-
-    field = ControlPoint[]
+    mlcs = Vector{MultiLeafCollimator{Matrix{T}, Vector{T}}}(undef, ncontrol)
 
     for i in eachindex(controlpoints)
 
         controlpoint = controlpoints[i]
 
-        ΔMU = 0.5*(meterset[min(ncontrol, i+1)]-meterset[max(1, i-1)])
+        ϕg = fixangle(deg2rad(controlpoint[tag"GantryAngle"]))
+        sourcepositions[i] = RotatingGantryPosition(ϕg, θb, SAD)
 
-        
+        meterset[i] = total_meterset*controlpoint[tag"CumulativeMetersetWeight"]
 
         mlcx = reshape(controlpoint[tag"BeamLimitingDevicePositionSequence"][end][tag"LeafJawPositions"], nleaves, 2)'
-        mlc = MultiLeafCollimator(Array(mlcx), mlcy)
-
-        ϕg = fixangle(deg2rad(controlpoint[tag"GantryAngle"]))
-        source_position = RotatingGantryPosition(ϕg, θb, SAD)
-
-        push!(field, ControlPoint(mlc, source_position, ΔMU, meterset[i], Ḋ, isocenter))
-
+        mlcs[i] = MultiLeafCollimator(Array(mlcx), mlcy)
     end
 
-    field
+    TreatmentField(mlcs, sourcepositions, meterset, doserate, isocenter)
 end
 
 """

@@ -29,7 +29,6 @@ struct ControlPoint{T<:AbstractFloat, TBLD<:AbstractBeamLimitingDevice,
 
     # Machine Parameters
     ΔMU::T # Meterset (MU)
-    MU::T # Cumulative Meterset (MU)
     doserate::T # Dose Rate (MU/s)
 
     isocenter::SVector{3, T}    # Isocenter Position
@@ -50,6 +49,52 @@ getisocenter(point::ControlPoint) = point.isocenter
 
 fixed_to_bld(point::ControlPoint) = point |> getsourceposition |> fixed_to_bld
 getΔt(point::ControlPoint) = getΔMU(point)/getdoserate(point)
+
+#--- TreatmentField ----------------------------------------------------------------------------------------------------
+
+struct TreatmentField{TBLD<:AbstractBeamLimitingDevice, TSrcPos<:AbstractSourcePosition,
+    T<:Real} <: AbstractTreatmentField
+    n::Int
+
+    beamlimitingdevices::Vector{TBLD}
+    sourcepositions::Vector{TSrcPos}
+    
+    # Machine Parameters
+    meterset::Vector{T} # Cumulative Meterset (MU)
+    doserate::Vector{T} # Dose Rate (MU/s)
+
+    isocenter::Vector{SVector{3, T}}    # Isocenter Position
+
+    function TreatmentField(beamlimitingdevices, sourcepositions, meterset, doserate, isocenter)
+        n = length(beamlimitingdevices)
+        @assert length(sourcepositions) == n "All input vectors must be of the same length"
+        @assert length(doserate) == n "All input vectors must be of the same length"
+        @assert length(meterset) == n "All input vectors must be of the same length"
+        @assert length(isocenter) == n "All input vectors must be of the same length"
+
+        TBLD = eltype(beamlimitingdevices)
+        TSrcPos = eltype(sourcepositions)
+        T = eltype(meterset)
+        new{TBLD, TSrcPos, T}(n, beamlimitingdevices, sourcepositions, meterset, doserate, isocenter)
+    end
+end
+
+Base.size(field::TreatmentField) = (field.n,)
+
+function Base.getindex(field::TreatmentField, i::Int)
+    n = length(field)
+    MU = field.meterset
+
+    ΔMU = 0.5*(MU[min(n, i+1)]-MU[max(1, i-1)])
+
+    ControlPoint(
+        field.beamlimitingdevices[i],
+        field.sourcepositions[i],
+        ΔMU,
+        field.doserate[i],
+        field.isocenter[i]
+        )
+end
 
 #--- Resampling --------------------------------------------------------------------------------------------------------
 
