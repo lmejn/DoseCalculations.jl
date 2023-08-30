@@ -122,6 +122,16 @@ end
 
 closeleaves!(mlc::MultiLeafCollimator) = setpositions!(mlc, zeros(2, length(mlc)))
 
+function Base.intersect(mlc::MultiLeafCollimator, jaws::Jaws)
+    x, y = getpositions(jaws)
+    i = locate.(Ref(mlc), y)
+
+    mlcy = clamp.(getedges(mlc, i[1]:i[2]), y[1], y[2])
+    mlcx = clamp.(getpositions(mlc, i[1]:i[2]), x[1], x[2])
+    MultiLeafCollimator(mlcx, mlcy)
+end
+
+
 #= Shifting the MLC
 
     Adds ability to move and scale the MLC

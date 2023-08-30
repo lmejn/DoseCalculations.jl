@@ -116,4 +116,18 @@
         @test length(Roentgen._str_aperture(10, [10, 20], 80)) == 80
     end
 
+    @testset "Intersection (∩)" begin
+        mlcx = Array(hcat(-10:2.:2., 24.:-3.:4.)')
+        mlcy = -15.:5.:20.
+        
+        mlc = MultiLeafCollimator(mlcx, mlcy)
+        jaws = Jaws(-3., 18., -8., 14.)
+
+        bld = mlc ∩ jaws
+
+        @test getpositions(bld) == clamp.(mlcx[:, 2:6], getx(jaws)...)
+        @test getedges(bld) == clamp.(mlcy[2:7], gety(jaws)...)
+    end
+
 end
+
